@@ -1,0 +1,3061 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AjedrezPRO - Sistema de Gestión de Torneos FIDE</title>
+  <meta name="description" content="Sistema web offline para gestión y arbitraje de torneos de ajedrez bajo estándares FIDE: Sistema Suizo, Eliminación Directa y Round Robin.">
+  <style>
+    /* ==========================================================================
+       VARIABLES Y PALETAS DE COLOR (DISEÑO MODERNO Y ELEGANTE)
+       ========================================================================== */
+    :root {
+      --font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      --transition-fast: 0.15s ease;
+      --transition-normal: 0.25s ease;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.2);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.25);
+      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.35);
+
+      /* Modo Oscuro (Por defecto) */
+      --bg-body: #0b1120;
+      --bg-surface: #141f36;
+      --bg-surface-elevated: #1e2c4f;
+      --bg-surface-subtle: #0f182c;
+      --border-color: #24355a;
+      --border-color-focus: #3b82f6;
+
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+
+      --primary: #3b82f6;
+      --primary-hover: #2563eb;
+      --primary-light: rgba(59, 130, 246, 0.15);
+
+      --gold: #f59e0b;
+      --gold-light: rgba(245, 158, 11, 0.15);
+      --emerald: #10b981;
+      --emerald-light: rgba(16, 185, 129, 0.15);
+      --rose: #ef4444;
+      --rose-light: rgba(239, 68, 68, 0.15);
+      --purple: #8b5cf6;
+      --purple-light: rgba(139, 92, 246, 0.15);
+    }
+
+    [data-theme="light"] {
+      --bg-body: #f1f5f9;
+      --bg-surface: #ffffff;
+      --bg-surface-elevated: #f8fafc;
+      --bg-surface-subtle: #e2e8f0;
+      --border-color: #cbd5e1;
+      --border-color-focus: #2563eb;
+
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --text-dim: #94a3b8;
+
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-light: rgba(37, 99, 235, 0.1);
+
+      --gold: #d97706;
+      --gold-light: rgba(217, 119, 6, 0.12);
+      --emerald: #059669;
+      --emerald-light: rgba(5, 150, 105, 0.12);
+      --rose: #dc2626;
+      --rose-light: rgba(220, 38, 38, 0.12);
+      --purple: #7c3aed;
+      --purple-light: rgba(124, 58, 237, 0.12);
+      --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+      --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.12);
+    }
+
+    /* ==========================================================================
+       RESET Y BASE
+       ========================================================================== */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      line-height: 1.5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      transition: background-color var(--transition-normal), color var(--transition-normal);
+    }
+
+    /* Iconos SVG inline */
+    .icon {
+      display: inline-block;
+      width: 1.15em;
+      height: 1.15em;
+      vertical-align: -0.2em;
+      stroke-width: 0;
+      stroke: currentColor;
+      fill: currentColor;
+    }
+
+    /* ==========================================================================
+       HEADER & BARRA DE ESTADO
+       ========================================================================== */
+    .app-header {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0.75rem 1.5rem;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .header-content {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .app-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      text-decoration: none;
+      color: var(--text-main);
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      font-size: 1.4rem;
+      font-weight: bold;
+      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+    }
+
+    .brand-info h1 {
+      font-size: 1.2rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .brand-info span {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: block;
+    }
+
+    .header-pills {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.3rem 0.7rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: 999px;
+      background: var(--bg-surface-elevated);
+      color: var(--text-muted);
+      border: 1px solid var(--border-color);
+    }
+
+    .status-pill.active {
+      background: var(--emerald-light);
+      color: var(--emerald);
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .status-pill.gold {
+      background: var(--gold-light);
+      color: var(--gold);
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    /* ==========================================================================
+       SISTEMA DE BOTONES Y ENTRADAS
+       ========================================================================== */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.5rem 0.9rem;
+      font-size: 0.85rem;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      user-select: none;
+      white-space: nowrap;
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: #ffffff;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-hover);
+    }
+
+    .btn-secondary {
+      background: var(--bg-surface-elevated);
+      color: var(--text-main);
+      border-color: var(--border-color);
+    }
+    .btn-secondary:hover:not(:disabled) {
+      background: var(--bg-surface-subtle);
+      border-color: var(--border-color-focus);
+    }
+
+    .btn-success {
+      background: var(--emerald);
+      color: #ffffff;
+    }
+    .btn-success:hover:not(:disabled) {
+      filter: brightness(1.1);
+    }
+
+    .btn-danger {
+      background: var(--rose-light);
+      color: var(--rose);
+      border-color: rgba(239, 68, 68, 0.3);
+    }
+    .btn-danger:hover:not(:disabled) {
+      background: var(--rose);
+      color: #ffffff;
+    }
+
+    .btn-gold {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: #ffffff;
+      box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+    }
+    .btn-gold:hover:not(:disabled) {
+      filter: brightness(1.1);
+    }
+
+    .btn-sm {
+      padding: 0.25rem 0.55rem;
+      font-size: 0.75rem;
+    }
+
+    .btn-icon {
+      padding: 0.5rem;
+      border-radius: var(--radius-sm);
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      margin-bottom: 0.9rem;
+    }
+
+    .form-group label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 0.55rem 0.8rem;
+      font-size: 0.875rem;
+      font-family: inherit;
+      background: var(--bg-surface-subtle);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-main);
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--border-color-focus);
+      box-shadow: 0 0 0 3px var(--primary-light);
+    }
+
+    select.form-control {
+      cursor: pointer;
+    }
+
+    /* ==========================================================================
+       BARRA DE PESTAÑAS (TABS)
+       ========================================================================== */
+    .tabs-bar {
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0 1.5rem;
+    }
+
+    .tabs-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      gap: 0.5rem;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tabs-container::-webkit-scrollbar {
+      display: none;
+    }
+
+    .tab-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.9rem 1.1rem;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    .tab-badge {
+      background: var(--bg-surface-elevated);
+      color: var(--text-muted);
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      font-size: 0.7rem;
+      border: 1px solid var(--border-color);
+    }
+    .tab-btn.active .tab-badge {
+      background: var(--primary-light);
+      color: var(--primary);
+      border-color: transparent;
+    }
+
+    /* ==========================================================================
+       CONTENIDO PRINCIPAL Y PANELES
+       ========================================================================== */
+    .main-content {
+      max-width: 1400px;
+      width: 100%;
+      margin: 1.5rem auto;
+      padding: 0 1.5rem;
+      flex: 1;
+    }
+
+    .tab-panel {
+      display: none;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+    .tab-panel.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      margin-bottom: 1.5rem;
+    }
+
+    .card-header {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+
+    .card-body {
+      padding: 1.25rem;
+    }
+
+    /* ==========================================================================
+       TABLAS
+       ========================================================================== */
+    .table-responsive {
+      overflow-x: auto;
+      width: 100%;
+    }
+
+    .app-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.875rem;
+    }
+
+    .app-table th {
+      background: var(--bg-surface-elevated);
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      padding: 0.75rem 0.9rem;
+      border-bottom: 1px solid var(--border-color);
+      white-space: nowrap;
+    }
+
+    .app-table td {
+      padding: 0.75rem 0.9rem;
+      border-bottom: 1px solid var(--border-color);
+      vertical-align: middle;
+    }
+
+    .app-table tbody tr {
+      transition: background-color var(--transition-fast);
+    }
+
+    .app-table tbody tr:hover {
+      background-color: var(--bg-surface-elevated);
+    }
+
+    /* ==========================================================================
+       ESTILOS ESPECÍFICOS: JUGADORES
+       ========================================================================== */
+    .players-layout {
+      display: grid;
+      grid-template-columns: 340px 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .players-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      padding: 0.2rem 0.55rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border-radius: var(--radius-sm);
+      white-space: nowrap;
+    }
+
+    .badge-active { background: var(--emerald-light); color: var(--emerald); }
+    .badge-pause { background: var(--gold-light); color: var(--gold); }
+    .badge-withdrawn { background: var(--rose-light); color: var(--rose); }
+    .badge-category { background: var(--purple-light); color: var(--purple); }
+
+    /* ==========================================================================
+       ESTILOS ESPECÍFICOS: RONDAS Y MESAS DE EMPAREJAMIENTO
+       ========================================================================== */
+    .rounds-nav {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    .round-pill-btn {
+      padding: 0.45rem 0.9rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      background: var(--bg-surface);
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+      transition: all var(--transition-fast);
+      white-space: nowrap;
+    }
+
+    .round-pill-btn:hover {
+      border-color: var(--border-color-focus);
+      color: var(--text-main);
+    }
+
+    .round-pill-btn.active {
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+
+    .round-pill-btn.completed::after {
+      content: "✓";
+      color: var(--emerald);
+      font-weight: bold;
+    }
+    .round-pill-btn.active.completed::after {
+      color: #ffffff;
+    }
+
+    .pairings-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.85rem;
+    }
+
+    .pairing-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 0.85rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    }
+
+    .pairing-card:hover {
+      border-color: var(--border-color-focus);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .board-badge {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      width: 48px;
+      height: 48px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .board-badge span {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-dim);
+    }
+
+    .match-players {
+      display: flex;
+      align-items: center;
+      flex: 1;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .player-box {
+      flex: 1;
+      min-width: 180px;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface-subtle);
+      border: 1px solid transparent;
+      transition: all var(--transition-fast);
+    }
+
+    .player-box.winner {
+      border-color: var(--emerald);
+      background: var(--emerald-light);
+    }
+
+    .player-box.loser {
+      opacity: 0.7;
+    }
+
+    .color-token {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: bold;
+      flex-shrink: 0;
+      border: 1px solid var(--border-color);
+    }
+
+    .color-token.white {
+      background: #ffffff;
+      color: #0f172a;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    }
+
+    .color-token.black {
+      background: #1e293b;
+      color: #f8fafc;
+      border-color: #475569;
+    }
+
+    .player-details {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .player-name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .player-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .match-result-control {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .result-select {
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 0.45rem 0.75rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      background: var(--bg-surface-elevated);
+      color: var(--text-main);
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .result-select:focus {
+      border-color: var(--primary);
+      outline: none;
+    }
+
+    .result-badge {
+      font-size: 0.95rem;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      padding: 0.35rem 0.85rem;
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-color);
+      color: var(--gold);
+    }
+
+    .bye-card {
+      background: var(--gold-light);
+      border: 1px dashed var(--gold);
+      border-radius: var(--radius-md);
+      padding: 0.85rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      color: var(--gold);
+    }
+
+    /* ==========================================================================
+       ESTILOS ESPECÍFICOS: CLASIFICACIÓN Y TABLA BERGER
+       ========================================================================== */
+    .medal {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      font-weight: bold;
+      font-size: 0.75rem;
+    }
+
+    .medal-1 { background: #f59e0b; color: #ffffff; box-shadow: 0 0 8px rgba(245, 158, 11, 0.5); }
+    .medal-2 { background: #94a3b8; color: #ffffff; }
+    .medal-3 { background: #b45309; color: #ffffff; }
+
+    .points-highlight {
+      font-weight: 800;
+      font-size: 1rem;
+      color: var(--emerald);
+    }
+
+    .cross-table-container {
+      margin-top: 1.5rem;
+    }
+
+    .cross-table th, .cross-table td {
+      text-align: center;
+      padding: 0.5rem;
+      min-width: 32px;
+    }
+
+    .cross-table td.cell-self {
+      background: var(--bg-surface-subtle);
+      color: var(--text-dim);
+    }
+
+    /* ==========================================================================
+       MODAL DIALOGS & TOAST NOTIFICATIONS
+       ========================================================================== */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+    }
+
+    .modal-backdrop.active {
+      display: flex;
+      animation: fadeIn 0.15s ease-out;
+    }
+
+    .modal-box {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 500px;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 1.1rem 1.25rem;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+    }
+
+    .modal-body {
+      padding: 1.25rem;
+    }
+
+    .modal-footer {
+      padding: 0.9rem 1.25rem;
+      border-top: 1px solid var(--border-color);
+      background: var(--bg-surface-subtle);
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.5rem;
+    }
+
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      z-index: 120;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      pointer-events: none;
+    }
+
+    .toast {
+      background: var(--bg-surface-elevated);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 0.75rem 1.1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      box-shadow: var(--shadow-md);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      animation: toastIn 0.2s ease-out;
+      pointer-events: auto;
+      max-width: 380px;
+    }
+
+    .toast.success { border-left: 4px solid var(--emerald); }
+    .toast.error { border-left: 4px solid var(--rose); }
+    .toast.warning { border-left: 4px solid var(--gold); }
+    .toast.info { border-left: 4px solid var(--primary); }
+
+    @keyframes toastIn {
+      from { transform: translateX(50px); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* ==========================================================================
+       OPTIMIZACIÓN PARA IMPRESIÓN OFICIAL (A4 - @media print)
+       ========================================================================== */
+    .print-only {
+      display: none;
+    }
+
+    @media print {
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-size: 11pt !important;
+      }
+
+      .app-header,
+      .tabs-bar,
+      .header-actions,
+      .header-pills,
+      .btn,
+      .rounds-nav,
+      .match-result-control select,
+      .form-control,
+      .toast-container,
+      .no-print {
+        display: none !important;
+      }
+
+      .main-content {
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      .card {
+        border: none !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+      }
+
+      .card-header {
+        border-bottom: 2px solid #000000 !important;
+        padding: 0.5rem 0 !important;
+      }
+
+      .print-only {
+        display: block !important;
+        margin-bottom: 1.5rem;
+        border-bottom: 2px solid #000;
+        padding-bottom: 0.5rem;
+      }
+
+      .print-header {
+        text-align: center;
+      }
+
+      .print-header h2 {
+        font-size: 16pt;
+        margin-bottom: 0.2rem;
+      }
+
+      .print-header p {
+        font-size: 10pt;
+        color: #444;
+      }
+
+      .app-table {
+        border: 1px solid #000000 !important;
+      }
+
+      .app-table th {
+        background: #eeeeee !important;
+        color: #000000 !important;
+        border: 1px solid #000000 !important;
+        font-size: 9pt !important;
+      }
+
+      .app-table td {
+        border: 1px solid #cccccc !important;
+        color: #000000 !important;
+        font-size: 9.5pt !important;
+        padding: 0.4rem 0.5rem !important;
+      }
+
+      .pairing-card {
+        border: 1px solid #000000 !important;
+        box-shadow: none !important;
+        page-break-inside: avoid;
+        margin-bottom: 0.4rem !important;
+        padding: 0.4rem 0.8rem !important;
+      }
+
+      .color-token.white {
+        border: 1px solid #000000 !important;
+      }
+
+      .color-token.black {
+        background: #000000 !important;
+        color: #ffffff !important;
+      }
+
+      .print-arbiter-footer {
+        display: flex !important;
+        justify-content: space-between;
+        margin-top: 3rem;
+        padding-top: 1rem;
+        border-top: 1px dotted #888;
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==========================================================================
+       HEADER PRINCIPAL DE LA APLICACIÓN
+       ========================================================================== -->
+  <header class="app-header">
+    <div class="header-content">
+      <div class="app-brand">
+        <div class="brand-logo">♟</div>
+        <div class="brand-info">
+          <h1>AjedrezPRO <span style="font-size: 0.75rem; background: var(--gold-light); color: var(--gold); padding: 0.1rem 0.4rem; border-radius: 4px; font-weight: normal;">FIDE Offline</span></h1>
+          <span id="headerTournamentSubtitle">Gestor Oficial de Torneos Locales</span>
+        </div>
+      </div>
+
+      <div class="header-pills">
+        <div class="status-pill gold" id="pillModality">Suizo FIDE</div>
+        <div class="status-pill active" id="pillRound">Ronda 0</div>
+        <div class="status-pill" id="pillPlayerCount">0 Jugadores</div>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn btn-secondary btn-icon" id="themeToggleBtn" title="Cambiar tema (Claro/Oscuro)">
+          🌓
+        </button>
+        <button class="btn btn-secondary btn-sm" id="importJsonBtn" title="Restaurar copia de seguridad JSON">
+          📥 Cargar
+        </button>
+        <input type="file" id="jsonFileInput" accept=".json" style="display: none;">
+        <button class="btn btn-secondary btn-sm" id="exportJsonBtn" title="Descargar copia del torneo en JSON">
+          💾 Respaldar
+        </button>
+        <button class="btn btn-danger btn-sm" id="resetTournamentBtn" title="Limpiar y crear nuevo torneo">
+          🔄 Nuevo
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================================================
+       BARRA DE NAVEGACIÓN POR PESTAÑAS
+       ========================================================================== -->
+  <nav class="tabs-bar">
+    <div class="tabs-container">
+      <button class="tab-btn active" data-tab="tab-players">
+        👥 1. Jugadores <span class="tab-badge" id="tabPlayersBadge">0</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-config">
+        ⚙️ 2. Configuración del Torneo
+      </button>
+      <button class="tab-btn" data-tab="tab-rounds">
+        ⚔️ 3. Rondas y Emparejamientos <span class="tab-badge" id="tabRoundsBadge">R0</span>
+      </button>
+      <button class="tab-btn" data-tab="tab-standings">
+        🏆 4. Clasificación General
+      </button>
+    </div>
+  </nav>
+
+  <!-- ==========================================================================
+       CONTENIDO PRINCIPAL
+       ========================================================================== -->
+  <main class="main-content">
+
+    <!-- CABECERA EXCLUSIVA PARA IMPRESIÓN OFICIAL -->
+    <div class="print-only print-header" id="printOfficialHeader">
+      <h2 id="printTitle">Torneo Local de Ajedrez</h2>
+      <p id="printDetails">Sistema de Competición FIDE | Ritmo: 15m + 10s | Reporte Oficial</p>
+    </div>
+
+    <!-- ==========================================================================
+         PESTAÑA 1: JUGADORES Y RANKING LOCAL
+         ========================================================================== -->
+    <section class="tab-panel active" id="tab-players">
+      <div class="players-layout">
+        
+        <!-- Formulario para Registrar Jugadores -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">➕ Inscribir Jugador</div>
+              <div class="card-subtitle">Censo y ranking local inicial</div>
+            </div>
+          </div>
+          <div class="card-body">
+            <form id="addPlayerForm">
+              <div class="form-group">
+                <label for="playerName">Nombre Completo *</label>
+                <input type="text" id="playerName" class="form-control" placeholder="Ej. Carlos Albarrán" required>
+              </div>
+              <div class="form-group">
+                <label for="playerClub">Club / Escuela / Asociación</label>
+                <input type="text" id="playerClub" class="form-control" placeholder="Ej. Club Jaque Mate">
+              </div>
+              <div class="form-group">
+                <label for="playerElo">Elo Local Inicial (FIDE / Nacional)</label>
+                <input type="number" id="playerElo" class="form-control" value="1200" min="800" max="3000" required>
+                <small style="color: var(--text-dim); font-size: 0.75rem;">Por defecto 1200 para jugadores no rankeados</small>
+              </div>
+              <div class="form-group">
+                <label for="playerCategory">Categoría</label>
+                <select id="playerCategory" class="form-control">
+                  <option value="Absoluto">Absoluto / Abierto</option>
+                  <option value="Femenil">Femenil</option>
+                  <option value="Sub-18">Sub-18 (Juvenil)</option>
+                  <option value="Sub-14">Sub-14 (Infantil)</option>
+                  <option value="Sub-10">Sub-10 (Promocional)</option>
+                  <option value="Veteranos">Veteranos (+50 / +65)</option>
+                </select>
+              </div>
+              <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
+                ✔ Registrar Jugador
+              </button>
+            </form>
+
+            <div style="margin-top: 1.25rem; padding-top: 1rem; border-top: 1px dashed var(--border-color);">
+              <button class="btn btn-secondary btn-sm" id="loadDemoPlayersBtn" style="width: 100%;">
+                ⚡ Cargar 10 Jugadores de Prueba (Demo)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabla y Censo de Jugadores -->
+        <div class="card">
+          <div class="card-header">
+            <div>
+              <div class="card-title">📋 Lista de Participantes Registrados</div>
+              <div class="card-subtitle" id="playersCountSummary">0 jugadores registrados</div>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+              <input type="text" id="playerSearchInput" class="form-control" placeholder="🔍 Buscar por nombre o club..." style="max-width: 250px; padding: 0.35rem 0.7rem; font-size: 0.8rem;">
+            </div>
+          </div>
+          <div class="card-body" style="padding: 0;">
+            <div class="table-responsive">
+              <table class="app-table" id="playersTable">
+                <thead>
+                  <tr>
+                    <th style="width: 40px;">#</th>
+                    <th>Jugador</th>
+                    <th>Club / Escuela</th>
+                    <th>Elo Inicial</th>
+                    <th>Categoría</th>
+                    <th>Estado</th>
+                    <th style="text-align: right;" class="no-print">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody id="playersTableBody">
+                  <tr>
+                    <td colspan="7" style="text-align: center; color: var(--text-dim); padding: 2.5rem;">
+                      No hay jugadores inscritos aún. Completa el formulario de la izquierda o haz clic en "Cargar Demo".
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==========================================================================
+         PESTAÑA 2: CONFIGURACIÓN DEL TORNEO
+         ========================================================================== -->
+    <section class="tab-panel" id="tab-config">
+      <div class="card" style="max-width: 800px; margin: 0 auto;">
+        <div class="card-header">
+          <div>
+            <div class="card-title">⚙️ Parámetros Oficiales del Torneo</div>
+            <div class="card-subtitle">Define las reglas de juego y la modalidad avalada antes de iniciar</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <form id="tournamentConfigForm">
+            <div class="form-group">
+              <label for="cfgTournamentName">Nombre Oficial del Torneo</label>
+              <input type="text" id="cfgTournamentName" class="form-control" value="Torneo Abierto de Ajedrez 2026" required>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div class="form-group">
+                <label for="cfgLocation">Sede / Organización</label>
+                <input type="text" id="cfgLocation" class="form-control" value="Club Local de Ajedrez">
+              </div>
+              <div class="form-group">
+                <label for="cfgTimeControl">Ritmo de Juego</label>
+                <select id="cfgTimeControl" class="form-control">
+                  <option value="15 min + 10 seg (Rápido)">15 min + 10 seg (Rápido FIDE)</option>
+                  <option value="10 min + 5 seg (Rápido)">10 min + 5 seg (Rápido)</option>
+                  <option value="3 min + 2 seg (Blitz)">3 min + 2 seg (Blitz Relámpago)</option>
+                  <option value="5 min (Blitz clásico)">5 min (Blitz sin incremento)</option>
+                  <option value="90 min + 30 seg (Clásico)">90 min + 30 seg (Clásico Estándar)</option>
+                  <option value="30 min finish">30 min a finish</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="cfgModality">Modalidad de Torneo Soportada</label>
+              <select id="cfgModality" class="form-control" style="font-weight: 600; font-size: 0.95rem; color: var(--gold);">
+                <option value="swiss">Sistema Suizo (Reglas FIDE - Dutch System)</option>
+                <option value="round_robin">Round Robin (Todos contra todos - Tablas Berger FIDE)</option>
+                <option value="knockout">Eliminación Directa (Bracket clásico con cabezas de serie por Elo)</option>
+              </select>
+              <small id="modalityHelpText" style="color: var(--text-muted); font-size: 0.78rem; margin-top: 0.25rem;">
+                Emparejamiento FIDE: grupos de puntuación afín, alternancia estricta de color y sin repetir rivales.
+              </small>
+            </div>
+
+            <div id="swissConfigGroup" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+              <div class="form-group">
+                <label for="cfgTotalRounds">Número Total de Rondas</label>
+                <input type="number" id="cfgTotalRounds" class="form-control" value="5" min="2" max="15">
+              </div>
+              <div class="form-group">
+                <label>Puntuación FIDE</label>
+                <div style="font-size: 0.85rem; color: var(--text-muted); padding: 0.55rem 0.8rem; background: var(--bg-surface-subtle); border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
+                  Victoria: <b>1.0</b> | Tablas: <b>0.5</b> | Derrota: <b>0.0</b> | Bye: <b>1.0</b>
+                </div>
+              </div>
+            </div>
+
+            <!-- Criterios de Desempate FIDE informativos -->
+            <div class="form-group" style="margin-top: 0.5rem;">
+              <label>Sistemas Oficiales de Desempate Aplicados (FIDE)</label>
+              <div style="background: var(--bg-surface-subtle); padding: 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-color); font-size: 0.8rem; color: var(--text-muted);">
+                <ol style="padding-left: 1.25rem; line-height: 1.6;">
+                  <li><b>Buchholz Cut 1 (Mediano):</b> Suma de puntos de los rivales restando el menor puntaje.</li>
+                  <li><b>Buchholz Total:</b> Suma total de puntos acumulados por todos los rivales enfrentados.</li>
+                  <li><b>Sonneborn-Berger:</b> Suma de puntos de rivales vencidos + 50% de rivales empatados.</li>
+                  <li><b>Resultado Directo:</b> Duelo individual previo entre jugadores con idéntica puntuación.</li>
+                  <li><b>Mayor número de victorias y Elo Inicial.</b></li>
+                </ol>
+              </div>
+            </div>
+
+            <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem;">
+              <button type="button" class="btn btn-secondary" id="saveConfigBtn">
+                💾 Guardar Parámetros
+              </button>
+              <button type="button" class="btn btn-gold" id="startTournamentBtn" style="font-size: 0.95rem; padding: 0.6rem 1.25rem;">
+                🚀 Iniciar Torneo y Generar Ronda 1
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================================================
+         PESTAÑA 3: RONDAS Y EMPAREJAMIENTOS
+         ========================================================================== -->
+    <section class="tab-panel" id="tab-rounds">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title" id="currentRoundTitle">⚔️ Rondas y Mesas de Competición</div>
+            <div class="card-subtitle" id="currentRoundStatus">El torneo no ha comenzado. Configúralo en la pestaña 2.</div>
+          </div>
+          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+            <button class="btn btn-secondary btn-sm" id="printPairingsBtn">
+              🖨️ Imprimir Hoja de Emparejamientos (A4)
+            </button>
+            <button class="btn btn-success btn-sm" id="finishRoundBtn">
+              🔒 Finalizar Ronda y Generar Siguiente
+            </button>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <!-- Selector de Rondas -->
+          <div class="rounds-nav" id="roundsNav">
+            <!-- Pills generadas dinámicamente -->
+          </div>
+
+          <!-- Alerta de Bye si número impar -->
+          <div id="byeNotificationBox" style="display: none; margin-bottom: 1rem;">
+            <!-- Notificación de Bye -->
+          </div>
+
+          <!-- Lista de Mesas / Bracket -->
+          <div class="pairings-grid" id="pairingsGrid">
+            <div style="text-align: center; color: var(--text-dim); padding: 3rem;">
+              No hay emparejamientos activos. Inicia el torneo en la pestaña <b>2. Configuración</b>.
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ==========================================================================
+         PESTAÑA 4: CLASIFICACIÓN GENERAL Y DESEMPATES FIDE
+         ========================================================================== -->
+    <section class="tab-panel" id="tab-standings">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <div class="card-title">🏆 Tabla Oficial de Posiciones</div>
+            <div class="card-subtitle" id="standingsSubtitle">Puntuación y criterios oficiales de desempate FIDE</div>
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+            <label for="categoryFilter" style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted);">Filtrar:</label>
+            <select id="categoryFilter" class="form-control" style="width: auto; padding: 0.35rem 0.75rem; font-size: 0.8rem;">
+              <option value="ALL">Todas las Categorías</option>
+              <option value="Absoluto">Absoluto</option>
+              <option value="Femenil">Femenil</option>
+              <option value="Sub-18">Sub-18</option>
+              <option value="Sub-14">Sub-14</option>
+              <option value="Sub-10">Sub-10</option>
+              <option value="Veteranos">Veteranos</option>
+            </select>
+            <button class="btn btn-secondary btn-sm" id="printStandingsBtn">
+              🖨️ Imprimir Clasificación (A4)
+            </button>
+          </div>
+        </div>
+
+        <div class="card-body" style="padding: 0;">
+          <div class="table-responsive">
+            <table class="app-table" id="standingsTable">
+              <thead>
+                <tr>
+                  <th style="width: 45px; text-align: center;">Pos</th>
+                  <th>Jugador</th>
+                  <th>Club / Escuela</th>
+                  <th style="text-align: center;">Elo</th>
+                  <th style="text-align: center;">Cat</th>
+                  <th style="text-align: center; color: var(--emerald);">PTS</th>
+                  <th style="text-align: center;" title="Buchholz Cut 1 (descuenta peor rival)">BH-C1</th>
+                  <th style="text-align: center;" title="Buchholz Total (suma de puntos de rivales)">BH</th>
+                  <th style="text-align: center;" title="Sonneborn-Berger">SB</th>
+                  <th style="text-align: center;" title="Partidas ganadas">Vict.</th>
+                  <th style="text-align: center;" class="no-print">Historial Rondas</th>
+                </tr>
+              </thead>
+              <tbody id="standingsTableBody">
+                <tr>
+                  <td colspan="11" style="text-align: center; color: var(--text-dim); padding: 2.5rem;">
+                    Aún no se han registrado resultados en el torneo.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Matriz Cruzada Berger para Round Robin -->
+          <div class="cross-table-container" id="crossTableSection" style="display: none; padding: 1.25rem; border-top: 1px solid var(--border-color);">
+            <h4 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--gold);">
+              📊 Tabla Cruzada Oficial Berger (Matriz Round Robin)
+            </h4>
+            <div class="table-responsive">
+              <table class="app-table cross-table" id="bergerMatrixTable">
+                <!-- Generado dinámicamente -->
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Pie de firma para arbitraje en impresión -->
+      <div class="print-only print-arbiter-footer">
+        <div>
+          <p>___________________________________________</p>
+          <p><b>Árbitro Principal del Torneo</b></p>
+          <p>Firma y Sello Oficial</p>
+        </div>
+        <div style="text-align: right;">
+          <p>___________________________________________</p>
+          <p><b>Comité Organizador / Director</b></p>
+          <p>Federación / Asociación Local de Ajedrez</p>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==========================================================================
+       MODAL: EDITAR JUGADOR
+       ========================================================================== -->
+  <div class="modal-backdrop" id="editPlayerModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">✏️ Modificar Datos del Jugador</div>
+        <button class="btn btn-secondary btn-sm close-modal-btn">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="editPlayerForm">
+          <input type="hidden" id="editPlayerId">
+          <div class="form-group">
+            <label for="editPlayerName">Nombre Completo</label>
+            <input type="text" id="editPlayerName" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="editPlayerClub">Club / Escuela</label>
+            <input type="text" id="editPlayerClub" class="form-control">
+          </div>
+          <div class="form-group">
+            <label for="editPlayerElo">Elo Local</label>
+            <input type="number" id="editPlayerElo" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="editPlayerCategory">Categoría</label>
+            <select id="editPlayerCategory" class="form-control">
+              <option value="Absoluto">Absoluto / Abierto</option>
+              <option value="Femenil">Femenil</option>
+              <option value="Sub-18">Sub-18 (Juvenil)</option>
+              <option value="Sub-14">Sub-14 (Infantil)</option>
+              <option value="Sub-10">Sub-10 (Promocional)</option>
+              <option value="Veteranos">Veteranos (+50 / +65)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="editPlayerStatus">Estado en la Competición</label>
+            <select id="editPlayerStatus" class="form-control">
+              <option value="active">Activo (Disponible para emparejamiento)</option>
+              <option value="bye_half">Descanso / Bye Solicitado (0.5 pt)</option>
+              <option value="bye_zero">Descanso / Pausa Temporal (0.0 pt)</option>
+              <option value="withdrawn">Baja Definitiva / Retirado</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary close-modal-btn">Cancelar</button>
+        <button class="btn btn-primary" id="savePlayerEditBtn">Guardar Cambios</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: CONFIRMAR DESEMPATE KNOCKOUT (ELIMINACIÓN DIRECTA)
+       ========================================================================== -->
+  <div class="modal-backdrop" id="knockoutTiebreakModal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">⚔️ Desempate en Eliminación Directa</div>
+      </div>
+      <div class="modal-body">
+        <p style="margin-bottom: 1rem; font-size: 0.9rem; color: var(--text-muted);">
+          La partida terminó en tablas (½ - ½). En sistema de eliminación directa debe avanzar un jugador a la siguiente ronda (por Armagedón, Blitz o Partida Rápida de desempate).
+        </p>
+        <div style="font-weight: 600; margin-bottom: 0.5rem;" id="koTiebreakMatchLabel">Mesa #</div>
+        <div style="display: flex; gap: 0.75rem;">
+          <button class="btn btn-secondary" id="koWinnerWhiteBtn" style="flex: 1; padding: 0.75rem;">
+            Avanzan Blancas ⚪
+          </button>
+          <button class="btn btn-secondary" id="koWinnerBlackBtn" style="flex: 1; padding: 0.75rem;">
+            Avanzan Negras ⚫
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       CONTENEDOR DE NOTIFICACIONES TOAST
+       ========================================================================== -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- ==========================================================================
+       LÓGICA JAVASCRIPT VANILLA - MOTOR COMPLETO FIDE OFFLINE
+       ========================================================================== -->
+  <script>
+    (function () {
+      'use strict';
+
+      /* ==========================================================================
+         ESTADO DE LA APLICACIÓN Y PERSISTENCIA (LOCALSTORAGE)
+         ========================================================================== */
+      const STORAGE_KEY = 'AJEDREZPRO_FIDE_OFFLINE_DB';
+
+      let state = {
+        tournament: {
+          name: 'Torneo Abierto de Ajedrez 2026',
+          location: 'Club Local de Ajedrez',
+          timeControl: '15 min + 10 seg (Rápido)',
+          modality: 'swiss', // 'swiss' | 'round_robin' | 'knockout'
+          totalRounds: 5,
+          currentRound: 0,
+          status: 'setup', // 'setup' | 'running' | 'finished'
+          createdDate: new Date().toISOString()
+        },
+        players: [],
+        rounds: [], // Array de { roundNumber, status: 'in_progress'|'completed', matches: [], byePlayerId: null }
+        viewRound: 1,
+        theme: 'dark'
+      };
+
+      // Guardar automáticamente en LocalStorage
+      function saveState() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (e) {
+          console.error('Error guardando en localStorage:', e);
+          showToast('Error al persistir en almacenamiento local', 'error');
+        }
+      }
+
+      // Cargar desde LocalStorage
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && parsed.tournament && parsed.players) {
+              state = parsed;
+            }
+          }
+        } catch (e) {
+          console.error('Error recuperando localStorage:', e);
+        }
+      }
+
+      /* ==========================================================================
+         SISTEMA DE NOTIFICACIONES TOAST
+         ========================================================================== */
+      function showToast(message, type = 'info') {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        
+        let icon = 'ℹ️';
+        if (type === 'success') icon = '✅';
+        if (type === 'error') icon = '❌';
+        if (type === 'warning') icon = '⚠️';
+
+        toast.innerHTML = `<span>${icon}</span> <span>${message}</span>`;
+        container.appendChild(toast);
+
+        setTimeout(() => {
+          toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateX(60px)';
+          setTimeout(() => toast.remove(), 300);
+        }, 3500);
+      }
+
+      /* ==========================================================================
+         SISTEMA DE TEMAS (DARK / LIGHT)
+         ========================================================================== */
+      function applyTheme(theme) {
+        state.theme = theme;
+        document.documentElement.setAttribute('data-theme', theme);
+        saveState();
+      }
+
+      function toggleTheme() {
+        applyTheme(state.theme === 'dark' ? 'light' : 'dark');
+      }
+
+      /* ==========================================================================
+         GESTIÓN DE JUGADORES
+         ========================================================================== */
+      function addPlayer(name, club, elo, category) {
+        const trimmedName = name.trim();
+        if (!trimmedName) return;
+
+        // Verificar duplicados de nombre
+        if (state.players.some(p => p.name.toLowerCase() === trimmedName.toLowerCase())) {
+          showToast('Ya existe un jugador registrado con este nombre', 'warning');
+          return;
+        }
+
+        const newPlayer = {
+          id: 'p_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+          name: trimmedName,
+          club: club.trim() || 'Independiente',
+          elo: parseInt(elo, 10) || 1200,
+          category: category || 'Absoluto',
+          status: 'active', // 'active' | 'bye_half' | 'bye_zero' | 'withdrawn'
+          colorHistory: [], // Lista cronológica de colores jugados: 'W' | 'B'
+          opponentsHistory: [] // Lista de IDs de oponentes jugados
+        };
+
+        state.players.push(newPlayer);
+        saveState();
+        renderPlayersList();
+        updateHeaderPills();
+        showToast(`Jugador "${trimmedName}" registrado con éxito`, 'success');
+      }
+
+      function updatePlayer(id, updatedFields) {
+        const player = state.players.find(p => p.id === id);
+        if (!player) return;
+
+        Object.assign(player, updatedFields);
+        saveState();
+        renderPlayersList();
+        recalculateAndRenderStandings();
+        showToast('Datos del jugador actualizados', 'success');
+      }
+
+      function deletePlayer(id) {
+        if (state.tournament.status !== 'setup') {
+          if (!confirm('El torneo ya ha comenzado. Si eliminas este jugador se afectará el historial de emparejamientos. ¿Deseas darlo de baja como retirado en su lugar?')) {
+            return;
+          }
+          const p = state.players.find(p => p.id === id);
+          if (p) {
+            p.status = 'withdrawn';
+            saveState();
+            renderPlayersList();
+            showToast('Jugador marcado como retirado', 'info');
+          }
+          return;
+        }
+
+        state.players = state.players.filter(p => p.id !== id);
+        saveState();
+        renderPlayersList();
+        updateHeaderPills();
+        showToast('Jugador eliminado', 'info');
+      }
+
+      // Cargar 10 Jugadores Demo para pruebas inmediatas
+      function loadDemoPlayers() {
+        const demo = [
+          { name: 'GM Alexey Shirov', club: 'Club Alfil Dorado', elo: 2450, category: 'Absoluto' },
+          { name: 'MI Valentina Gómez', club: 'Academia Peón Dama', elo: 2180, category: 'Femenil' },
+          { name: 'MF Carlos Mendoza', club: 'Club Jaque Mate', elo: 2120, category: 'Absoluto' },
+          { name: 'Sofía Navarro', club: 'Escuela Torre Fuerte', elo: 1850, category: 'Sub-18' },
+          { name: 'David Benítez', club: 'Club Central Ajedrez', elo: 1720, category: 'Absoluto' },
+          { name: 'Lucía Ramírez', club: 'Club Ruy López', elo: 1640, category: 'Sub-14' },
+          { name: 'Mateo Paredes', club: 'Círculo de Ajedrez', elo: 1510, category: 'Sub-18' },
+          { name: 'Camila Herrera', club: 'Academia Kasparov', elo: 1430, category: 'Femenil' },
+          { name: 'Juan Pablo Torres', club: 'Peones Unidos', elo: 1380, category: 'Sub-14' },
+          { name: 'Nicolás Rojas', club: 'Club Gambito', elo: 1250, category: 'Absoluto' }
+        ];
+
+        let count = 0;
+        demo.forEach(d => {
+          if (!state.players.some(p => p.name.toLowerCase() === d.name.toLowerCase())) {
+            state.players.push({
+              id: 'p_demo_' + Math.random().toString(36).substr(2, 6),
+              name: d.name,
+              club: d.club,
+              elo: d.elo,
+              category: d.category,
+              status: 'active',
+              colorHistory: [],
+              opponentsHistory: []
+            });
+            count++;
+          }
+        });
+
+        saveState();
+        renderPlayersList();
+        updateHeaderPills();
+        showToast(`${count} jugadores demo cargados con éxito`, 'success');
+      }
+
+      function renderPlayersList() {
+        const tbody = document.getElementById('playersTableBody');
+        const searchVal = (document.getElementById('playerSearchInput').value || '').toLowerCase();
+        
+        let filtered = state.players.filter(p => 
+          p.name.toLowerCase().includes(searchVal) || p.club.toLowerCase().includes(searchVal)
+        );
+
+        // Ordenar por Elo inicial descendente
+        filtered.sort((a, b) => b.elo - a.elo);
+
+        document.getElementById('playersCountSummary').innerText = `${state.players.length} jugadores registrados`;
+        document.getElementById('tabPlayersBadge').innerText = state.players.length;
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="7" style="text-align: center; color: var(--text-dim); padding: 2.5rem;">
+                ${state.players.length === 0 ? 'No hay jugadores inscritos aún.' : 'No se encontraron jugadores con ese filtro.'}
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = filtered.map((player, idx) => {
+          let statusBadge = '<span class="badge badge-active">Activo</span>';
+          if (player.status === 'bye_half') statusBadge = '<span class="badge badge-pause">Descanso ½</span>';
+          if (player.status === 'bye_zero') statusBadge = '<span class="badge badge-pause">Descanso 0</span>';
+          if (player.status === 'withdrawn') statusBadge = '<span class="badge badge-withdrawn">Retirado</span>';
+
+          return `
+            <tr>
+              <td style="color: var(--text-dim); font-weight: 600;">${idx + 1}</td>
+              <td style="font-weight: 600;">${player.name}</td>
+              <td style="color: var(--text-muted);">${player.club}</td>
+              <td><span style="font-weight: 700; color: var(--gold);">${player.elo}</span></td>
+              <td><span class="badge badge-category">${player.category}</span></td>
+              <td>${statusBadge}</td>
+              <td style="text-align: right;" class="no-print">
+                <button class="btn btn-secondary btn-sm" onclick="window.AjedrezApp.openEditModal('${player.id}')" title="Editar">
+                  ✏️
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="window.AjedrezApp.deletePlayerPrompt('${player.id}')" title="Eliminar / Retirar">
+                  🗑️
+                </button>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      /* ==========================================================================
+         MOTOR DE PUNTUACIÓN Y DESEMPATES FIDE
+         ========================================================================== */
+      function getPlayerStats(playerId) {
+        let points = 0;
+        let wins = 0;
+        let playedOpponentIds = [];
+        let opponentResults = []; // { oppId, matchResult, playerWon, playerDrew }
+
+        // Recorrer todas las rondas completadas o en curso con resultados registrados
+        state.rounds.forEach(round => {
+          // Si el jugador recibió Bye oficial en esta ronda
+          if (round.byePlayerId === playerId) {
+            points += 1.0;
+            wins += 1;
+            return;
+          }
+
+          if (!round.matches) return;
+
+          const match = round.matches.find(m => m.whiteId === playerId || m.blackId === playerId);
+          if (!match || !match.result) return;
+
+          const isWhite = match.whiteId === playerId;
+          const oppId = isWhite ? match.blackId : match.whiteId;
+
+          if (oppId && oppId !== '__BYE__') {
+            playedOpponentIds.push(oppId);
+          }
+
+          const res = match.result;
+
+          if (isWhite) {
+            if (res === '1-0' || res === '1-0F') {
+              points += 1.0;
+              wins += 1;
+              opponentResults.push({ oppId, playerWon: true, playerDrew: false });
+            } else if (res === '0.5-0.5' || res === '½-½') {
+              points += 0.5;
+              opponentResults.push({ oppId, playerWon: false, playerDrew: true });
+            } else {
+              opponentResults.push({ oppId, playerWon: false, playerDrew: false });
+            }
+          } else { // Jugador es Negras
+            if (res === '0-1' || res === '0-1F') {
+              points += 1.0;
+              wins += 1;
+              opponentResults.push({ oppId, playerWon: true, playerDrew: false });
+            } else if (res === '0.5-0.5' || res === '½-½') {
+              points += 0.5;
+              opponentResults.push({ oppId, playerWon: false, playerDrew: true });
+            } else {
+              opponentResults.push({ oppId, playerWon: false, playerDrew: false });
+            }
+          }
+        });
+
+        return {
+          playerId,
+          points,
+          wins,
+          playedOpponentIds,
+          opponentResults
+        };
+      }
+
+      function computeAllStandings() {
+        // 1. Obtener puntos básicos de todos los jugadores
+        const statsMap = new Map();
+        state.players.forEach(p => {
+          statsMap.set(p.id, getPlayerStats(p.id));
+        });
+
+        // 2. Calcular Buchholz y Sonneborn-Berger basados en los puntos acumulados de rivales
+        const standings = state.players.map(player => {
+          const stats = statsMap.get(player.id);
+          const oppScores = stats.playedOpponentIds.map(oppId => {
+            const oppStats = statsMap.get(oppId);
+            return oppStats ? oppStats.points : 0;
+          });
+
+          // Buchholz Total
+          const buchholzTotal = oppScores.reduce((sum, val) => sum + val, 0);
+
+          // Buchholz Cut 1 (restar la peor puntuación de rival)
+          let buchholzCut1 = buchholzTotal;
+          if (oppScores.length >= 2) {
+            const minScore = Math.min(...oppScores);
+            buchholzCut1 = buchholzTotal - minScore;
+          }
+
+          // Sonneborn-Berger (SB): Suma de puntos de vencidos + 50% de empatados
+          let sonnebornBerger = 0;
+          stats.opponentResults.forEach(item => {
+            if (!item.oppId || item.oppId === '__BYE__') return;
+            const oppStats = statsMap.get(item.oppId);
+            const oppPoints = oppStats ? oppStats.points : 0;
+            if (item.playerWon) {
+              sonnebornBerger += oppPoints;
+            } else if (item.playerDrew) {
+              sonnebornBerger += 0.5 * oppPoints;
+            }
+          });
+
+          return {
+            player,
+            points: stats.points,
+            wins: stats.wins,
+            buchholzCut1,
+            buchholzTotal,
+            sonnebornBerger,
+            playedOpponentIds: stats.playedOpponentIds
+          };
+        });
+
+        // 3. Ordenamiento oficial FIDE:
+        // Puntos -> Buchholz Cut 1 -> Buchholz Total -> Sonneborn-Berger -> Resultado Directo -> Victorias -> Elo
+        standings.sort((a, b) => {
+          if (b.points !== a.points) return b.points - a.points;
+          if (b.buchholzCut1 !== a.buchholzCut1) return b.buchholzCut1 - a.buchholzCut1;
+          if (b.buchholzTotal !== a.buchholzTotal) return b.buchholzTotal - a.buchholzTotal;
+          if (b.sonnebornBerger !== a.sonnebornBerger) return b.sonnebornBerger - a.sonnebornBerger;
+
+          // Resultado Directo entre empatados (si se enfrentaron)
+          const directMatch = getDirectEncounterResult(a.player.id, b.player.id);
+          if (directMatch !== 0) return directMatch; // 1 si A ganó, -1 si B ganó
+
+          if (b.wins !== a.wins) return b.wins - a.wins;
+          return b.player.elo - a.player.elo;
+        });
+
+        return standings;
+      }
+
+      function getDirectEncounterResult(p1Id, p2Id) {
+        for (const round of state.rounds) {
+          if (!round.matches) continue;
+          const match = round.matches.find(m => 
+            (m.whiteId === p1Id && m.blackId === p2Id) || 
+            (m.whiteId === p2Id && m.blackId === p1Id)
+          );
+          if (match && match.result) {
+            const isP1White = match.whiteId === p1Id;
+            if (match.result === '1-0' || match.result === '1-0F') return isP1White ? -1 : 1;
+            if (match.result === '0-1' || match.result === '0-1F') return isP1White ? 1 : -1;
+            return 0; // Tablas
+          }
+        }
+        return 0;
+      }
+
+      /* ==========================================================================
+         EMPAREJAMIENTO SISTEMA SUIZO (FIDE DUTCH SYSTEM AVALADO)
+         ========================================================================== */
+      function hasPlayedBefore(p1Id, p2Id) {
+        if (!p1Id || !p2Id || p1Id === p2Id) return true;
+        for (const round of state.rounds) {
+          if (!round.matches) continue;
+          const played = round.matches.some(m => 
+            (m.whiteId === p1Id && m.blackId === p2Id) || 
+            (m.whiteId === p2Id && m.blackId === p1Id)
+          );
+          if (played) return true;
+        }
+        return false;
+      }
+
+      function hasReceivedBye(playerId) {
+        return state.rounds.some(r => r.byePlayerId === playerId);
+      }
+
+      function getColorPreferences(player) {
+        let whites = 0;
+        let blacks = 0;
+        let lastColor = null;
+        let consecutiveCount = 0;
+
+        state.rounds.forEach(round => {
+          if (!round.matches) return;
+          const m = round.matches.find(m => m.whiteId === player.id || m.blackId === player.id);
+          if (m && !m.isBye) {
+            const color = m.whiteId === player.id ? 'W' : 'B';
+            if (color === 'W') whites++;
+            else blacks++;
+
+            if (color === lastColor) {
+              consecutiveCount++;
+            } else {
+              consecutiveCount = 1;
+              lastColor = color;
+            }
+          }
+        });
+
+        return {
+          whites,
+          blacks,
+          diff: whites - blacks, // Positivo: jugó más blancas; Negativo: jugó más negras
+          lastColor,
+          consecutiveCount
+        };
+      }
+
+      function generateSwissPairings(roundNumber) {
+        // Filtrar jugadores disponibles
+        let eligiblePlayers = state.players.filter(p => p.status === 'active');
+
+        if (eligiblePlayers.length < 2) {
+          showToast('Se requieren al menos 2 jugadores activos para generar emparejamientos', 'error');
+          return null;
+        }
+
+        // Obtener estadísticas y puntos actuales
+        const standings = computeAllStandings();
+        const playerStatsMap = new Map();
+        standings.forEach(item => {
+          playerStatsMap.set(item.player.id, item);
+        });
+
+        // Ordenar por Puntos desc, luego Buchholz desc, luego Elo desc
+        eligiblePlayers.sort((a, b) => {
+          const statsA = playerStatsMap.get(a.id) || { points: 0, buchholzCut1: 0 };
+          const statsB = playerStatsMap.get(b.id) || { points: 0, buchholzCut1: 0 };
+          if (statsB.points !== statsA.points) return statsB.points - statsA.points;
+          if (statsB.buchholzCut1 !== statsA.buchholzCut1) return statsB.buchholzCut1 - statsA.buchholzCut1;
+          return b.elo - a.elo;
+        });
+
+        let byePlayerId = null;
+
+        // Gestión de número impar: otorgar Bye (1 punto) según reglas FIDE
+        // Se otorga al jugador de menor puntuación que aún no haya recibido Bye
+        if (eligiblePlayers.length % 2 !== 0) {
+          for (let i = eligiblePlayers.length - 1; i >= 0; i--) {
+            const candidate = eligiblePlayers[i];
+            if (!hasReceivedBye(candidate.id)) {
+              byePlayerId = candidate.id;
+              eligiblePlayers.splice(i, 1);
+              break;
+            }
+          }
+          // Si todos recibieron bye por rareza, asignar al último
+          if (!byePlayerId) {
+            byePlayerId = eligiblePlayers.pop().id;
+          }
+        }
+
+        // Ronda 1: Emparejamiento clásico S1 vs S2 (Mitad superior vs Mitad inferior)
+        if (roundNumber === 1) {
+          const matches = [];
+          const half = eligiblePlayers.length / 2;
+          const topHalf = eligiblePlayers.slice(0, half);
+          const bottomHalf = eligiblePlayers.slice(half);
+
+          for (let i = 0; i < half; i++) {
+            const p1 = topHalf[i];
+            const p2 = bottomHalf[i];
+
+            // Alternancia en mesa 1, 2, 3...
+            let whitePlayer = i % 2 === 0 ? p1 : p2;
+            let blackPlayer = i % 2 === 0 ? p2 : p1;
+
+            matches.push({
+              id: `m_${roundNumber}_${i + 1}`,
+              board: i + 1,
+              whiteId: whitePlayer.id,
+              blackId: blackPlayer.id,
+              result: null,
+              isBye: false
+            });
+          }
+
+          return { matches, byePlayerId };
+        }
+
+        // Rondas 2 en adelante: Algoritmo de emparejamiento con retroceso (Backtracking)
+        // Agrupación por puntuación y balance estricto de colores
+        function solvePairings(unpaired) {
+          if (unpaired.length === 0) return [];
+
+          const p1 = unpaired[0];
+          const p1Pref = getColorPreferences(p1);
+          const p1Stats = playerStatsMap.get(p1.id) || { points: 0 };
+
+          // Candidatos viables ordenados por compatibilidad
+          const candidates = [];
+          for (let i = 1; i < unpaired.length; i++) {
+            const p2 = unpaired[i];
+            if (!hasPlayedBefore(p1.id, p2.id)) {
+              const p2Stats = playerStatsMap.get(p2.id) || { points: 0 };
+              const p2Pref = getColorPreferences(p2);
+
+              // Penalización por diferencia de puntos (preferir igual puntaje)
+              let penalty = Math.abs(p1Stats.points - p2Stats.points) * 1000;
+
+              // Penalización por incompatibilidad de color
+              if (p1Pref.diff > 0 && p2Pref.diff > 0) penalty += 50; // Ambos necesitan negras
+              if (p1Pref.diff < 0 && p2Pref.diff < 0) penalty += 50; // Ambos necesitan blancas
+
+              // Evitar 3 colores consecutivos iguales si es posible
+              if (p1Pref.consecutiveCount >= 2 && p2Pref.consecutiveCount >= 2 && p1Pref.lastColor === p2Pref.lastColor) {
+                penalty += 200;
+              }
+
+              candidates.push({ player: p2, index: i, penalty });
+            }
+          }
+
+          // Ordenar candidatos por menor penalización
+          candidates.sort((a, b) => a.penalty - b.penalty);
+
+          for (const cand of candidates) {
+            const p2 = cand.player;
+            const p2Pref = getColorPreferences(p2);
+
+            // Determinar colores ideales
+            let whiteId, blackId;
+            let p1WantsWhite = p1Pref.diff < p2Pref.diff || (p1Pref.diff === p2Pref.diff && p1Pref.lastColor === 'B');
+            
+            if (p1WantsWhite) {
+              whiteId = p1.id;
+              blackId = p2.id;
+            } else {
+              whiteId = p2.id;
+              blackId = p1.id;
+            }
+
+            // Crear emparejamiento tentativo
+            const pair = { whiteId, blackId };
+            const remaining = unpaired.filter(p => p.id !== p1.id && p.id !== p2.id);
+
+            const subSolution = solvePairings(remaining);
+            if (subSolution !== null) {
+              return [pair, ...subSolution];
+            }
+          }
+
+          return null; // Fallo en esta rama
+        }
+
+        const pairedList = solvePairings(eligiblePlayers);
+
+        if (!pairedList) {
+          showToast('No se pudo encontrar una combinación estricta sin repetir rivales. Revisa el estado de los jugadores.', 'error');
+          return null;
+        }
+
+        const matches = pairedList.map((pair, idx) => ({
+          id: `m_${roundNumber}_${idx + 1}`,
+          board: idx + 1,
+          whiteId: pair.whiteId,
+          blackId: pair.blackId,
+          result: null,
+          isBye: false
+        }));
+
+        return { matches, byePlayerId };
+      }
+
+      /* ==========================================================================
+         SISTEMA ROUND ROBIN (TODOS CONTRA TODOS - TABLAS BERGER FIDE)
+         ========================================================================== */
+      function generateRoundRobinRounds() {
+        const activePlayers = state.players.filter(p => p.status === 'active');
+        if (activePlayers.length < 2) {
+          showToast('Se requieren al menos 2 jugadores para Round Robin', 'error');
+          return false;
+        }
+
+        // Ordenar por Elo inicial para asignar números Berger
+        activePlayers.sort((a, b) => b.elo - a.elo);
+
+        let list = [...activePlayers];
+        let hasDummy = false;
+
+        if (list.length % 2 !== 0) {
+          list.push({ id: '__BYE__', name: 'Descanso (BYE)', elo: 0, isDummy: true });
+          hasDummy = true;
+        }
+
+        const n = list.length;
+        const totalRounds = n - 1;
+        state.tournament.totalRounds = totalRounds;
+
+        const allRounds = [];
+
+        // Algoritmo circular Berger FIDE
+        for (let r = 0; r < totalRounds; r++) {
+          const roundMatches = [];
+          let roundByePlayerId = null;
+
+          for (let i = 0; i < n / 2; i++) {
+            let p1Index = i;
+            let p2Index = n - 1 - i;
+
+            let p1 = list[p1Index];
+            let p2 = list[p2Index];
+
+            // Alternancia de colores según ronda y mesa
+            let white, black;
+            if (i === 0) {
+              // Mesa 1: fija
+              if (r % 2 === 0) {
+                white = p2; black = p1;
+              } else {
+                white = p1; black = p2;
+              }
+            } else {
+              if ((i + r) % 2 === 0) {
+                white = p1; black = p2;
+              } else {
+                white = p2; black = p1;
+              }
+            }
+
+            if (white.isDummy) {
+              roundByePlayerId = black.id;
+            } else if (black.isDummy) {
+              roundByePlayerId = white.id;
+            } else {
+              roundMatches.push({
+                id: `m_${r + 1}_${roundMatches.length + 1}`,
+                board: roundMatches.length + 1,
+                whiteId: white.id,
+                blackId: black.id,
+                result: null,
+                isBye: false
+              });
+            }
+          }
+
+          allRounds.push({
+            roundNumber: r + 1,
+            status: r === 0 ? 'in_progress' : 'pending',
+            matches: roundMatches,
+            byePlayerId: roundByePlayerId
+          });
+
+          // Rotación de jugadores (fijo el primero, rotan los demás)
+          list = [list[0], list[n - 1], ...list.slice(1, n - 1)];
+        }
+
+        state.rounds = allRounds;
+        state.tournament.currentRound = 1;
+        state.viewRound = 1;
+        state.tournament.status = 'running';
+
+        saveState();
+        return true;
+      }
+
+      /* ==========================================================================
+         SISTEMA ELIMINACIÓN DIRECTA (KNOCKOUT BRACKET POR ELO)
+         ========================================================================== */
+      function generateKnockoutTournament() {
+        const activePlayers = state.players.filter(p => p.status === 'active');
+        if (activePlayers.length < 2) {
+          showToast('Se requieren al menos 2 jugadores para Eliminación Directa', 'error');
+          return false;
+        }
+
+        // Ordenar cabezas de serie por Elo descendente
+        activePlayers.sort((a, b) => b.elo - a.elo);
+
+        // Potencia de 2 superior más cercana (2, 4, 8, 16, 32...)
+        const bracketSize = Math.pow(2, Math.ceil(Math.log2(activePlayers.length)));
+        const totalRounds = Math.log2(bracketSize);
+        state.tournament.totalRounds = totalRounds;
+
+        // Generar cabezas de serie en orden clásico de bracket de tenis/ajedrez
+        function getBracketSeeds(num) {
+          let list = [1, 2];
+          for (let r = 1; r < Math.log2(num); r++) {
+            let next = [];
+            let sum = (1 << (r + 1)) + 1;
+            for (let s of list) {
+              next.push(s);
+              next.push(sum - s);
+            }
+            list = next;
+          }
+          return list;
+        }
+
+        const seeds = getBracketSeeds(bracketSize);
+        const round1Matches = [];
+
+        for (let i = 0; i < seeds.length; i += 2) {
+          const seed1 = seeds[i];
+          const seed2 = seeds[i + 1];
+
+          const p1 = activePlayers[seed1 - 1] || null;
+          const p2 = activePlayers[seed2 - 1] || null;
+
+          const matchId = `m_1_${(i / 2) + 1}`;
+
+          if (p1 && !p2) {
+            // P1 pasa automáticamente por Bye
+            round1Matches.push({
+              id: matchId,
+              board: (i / 2) + 1,
+              whiteId: p1.id,
+              blackId: null,
+              result: '1-0',
+              winnerId: p1.id,
+              isBye: true
+            });
+          } else if (!p1 && p2) {
+            // P2 pasa automáticamente por Bye
+            round1Matches.push({
+              id: matchId,
+              board: (i / 2) + 1,
+              whiteId: null,
+              blackId: p2.id,
+              result: '0-1',
+              winnerId: p2.id,
+              isBye: true
+            });
+          } else if (p1 && p2) {
+            round1Matches.push({
+              id: matchId,
+              board: (i / 2) + 1,
+              whiteId: p1.id,
+              blackId: p2.id,
+              result: null,
+              winnerId: null,
+              isBye: false
+            });
+          }
+        }
+
+        state.rounds = [{
+          roundNumber: 1,
+          status: 'in_progress',
+          matches: round1Matches,
+          byePlayerId: null
+        }];
+
+        state.tournament.currentRound = 1;
+        state.viewRound = 1;
+        state.tournament.status = 'running';
+
+        saveState();
+        return true;
+      }
+
+      function advanceKnockoutRound() {
+        const curRoundIndex = state.tournament.currentRound - 1;
+        const curRound = state.rounds[curRoundIndex];
+
+        // Verificar que todos los partidos tengan ganador definido
+        for (const m of curRound.matches) {
+          if (!m.winnerId) {
+            showToast(`La mesa #${m.board} aún no tiene un ganador definitivo para avanzar de fase.`, 'warning');
+            return false;
+          }
+        }
+
+        curRound.status = 'completed';
+
+        // Si sólo había 1 partida, era la final
+        if (curRound.matches.length === 1) {
+          state.tournament.status = 'finished';
+          saveState();
+          showToast('¡Torneo Finalizado! Tenemos un Campeón.', 'success');
+          recalculateAndRenderStandings();
+          renderRoundsUI();
+          return true;
+        }
+
+        // Crear siguiente ronda de eliminación
+        const winners = curRound.matches.map(m => m.winnerId);
+        const nextRoundNumber = state.tournament.currentRound + 1;
+        const nextMatches = [];
+
+        for (let i = 0; i < winners.length; i += 2) {
+          const w1 = winners[i];
+          const w2 = winners[i + 1];
+
+          nextMatches.push({
+            id: `m_${nextRoundNumber}_${(i / 2) + 1}`,
+            board: (i / 2) + 1,
+            whiteId: w1,
+            blackId: w2,
+            result: null,
+            winnerId: null,
+            isBye: false
+          });
+        }
+
+        state.rounds.push({
+          roundNumber: nextRoundNumber,
+          status: 'in_progress',
+          matches: nextMatches,
+          byePlayerId: null
+        });
+
+        state.tournament.currentRound = nextRoundNumber;
+        state.viewRound = nextRoundNumber;
+
+        saveState();
+        showToast(`Ronda ${nextRoundNumber} generada correctamente`, 'success');
+        renderRoundsUI();
+        recalculateAndRenderStandings();
+        return true;
+      }
+
+      /* ==========================================================================
+         INICIO Y PROGRESIÓN DEL TORNEO
+         ========================================================================== */
+      function startTournament() {
+        const modality = document.getElementById('cfgModality').value;
+        const name = document.getElementById('cfgTournamentName').value.trim() || 'Torneo de Ajedrez';
+        const location = document.getElementById('cfgLocation').value.trim();
+        const timeControl = document.getElementById('cfgTimeControl').value;
+        const totalRounds = parseInt(document.getElementById('cfgTotalRounds').value, 10) || 5;
+
+        if (state.players.length < 2) {
+          showToast('Se requieren al menos 2 jugadores registrados para comenzar', 'warning');
+          return;
+        }
+
+        state.tournament.name = name;
+        state.tournament.location = location;
+        state.tournament.timeControl = timeControl;
+        state.tournament.modality = modality;
+
+        if (modality === 'swiss') {
+          state.tournament.totalRounds = totalRounds;
+          const pairing = generateSwissPairings(1);
+          if (!pairing) return;
+
+          state.rounds = [{
+            roundNumber: 1,
+            status: 'in_progress',
+            matches: pairing.matches,
+            byePlayerId: pairing.byePlayerId
+          }];
+          state.tournament.currentRound = 1;
+          state.viewRound = 1;
+          state.tournament.status = 'running';
+        } else if (modality === 'round_robin') {
+          if (!generateRoundRobinRounds()) return;
+        } else if (modality === 'knockout') {
+          if (!generateKnockoutTournament()) return;
+        }
+
+        saveState();
+        updateHeaderPills();
+        showToast('¡Torneo iniciado! Emparejamientos de la Ronda 1 listos.', 'success');
+
+        // Cambiar automáticamente a pestaña de Rondas
+        switchTab('tab-rounds');
+        renderRoundsUI();
+      }
+
+      function finishCurrentRound() {
+        const curRoundNumber = state.tournament.currentRound;
+        const round = state.rounds.find(r => r.roundNumber === curRoundNumber);
+
+        if (!round) return;
+
+        // Validar si hay mesas sin resultado
+        const pendingMatches = round.matches.filter(m => !m.result);
+        if (pendingMatches.length > 0) {
+          const boards = pendingMatches.map(m => m.board).join(', ');
+          showToast(`No puedes cerrar la ronda: las mesas [ ${boards} ] aún no tienen resultado registrado.`, 'warning');
+          return;
+        }
+
+        // Si es Eliminación directa
+        if (state.tournament.modality === 'knockout') {
+          advanceKnockoutRound();
+          return;
+        }
+
+        // Si es Round Robin
+        if (state.tournament.modality === 'round_robin') {
+          round.status = 'completed';
+          if (curRoundNumber >= state.tournament.totalRounds) {
+            state.tournament.status = 'finished';
+            saveState();
+            showToast('¡Torneo Round Robin Finalizado!', 'success');
+          } else {
+            state.tournament.currentRound = curRoundNumber + 1;
+            state.viewRound = curRoundNumber + 1;
+            const nextR = state.rounds.find(r => r.roundNumber === curRoundNumber + 1);
+            if (nextR) nextR.status = 'in_progress';
+            saveState();
+            showToast(`Ronda ${curRoundNumber} cerrada. Avanzando a Ronda ${curRoundNumber + 1}.`, 'success');
+          }
+          renderRoundsUI();
+          recalculateAndRenderStandings();
+          return;
+        }
+
+        // Si es Sistema Suizo
+        round.status = 'completed';
+
+        if (curRoundNumber >= state.tournament.totalRounds) {
+          state.tournament.status = 'finished';
+          saveState();
+          showToast('¡Torneo Suizo Finalizado! Revisa la clasificación final.', 'success');
+          renderRoundsUI();
+          recalculateAndRenderStandings();
+          return;
+        }
+
+        // Generar siguiente ronda en Sistema Suizo
+        const nextRoundNumber = curRoundNumber + 1;
+        const pairing = generateSwissPairings(nextRoundNumber);
+
+        if (!pairing) return;
+
+        state.rounds.push({
+          roundNumber: nextRoundNumber,
+          status: 'in_progress',
+          matches: pairing.matches,
+          byePlayerId: pairing.byePlayerId
+        });
+
+        state.tournament.currentRound = nextRoundNumber;
+        state.viewRound = nextRoundNumber;
+
+        saveState();
+        showToast(`Ronda ${curRoundNumber} finalizada con éxito. ¡Ronda ${nextRoundNumber} generada!`, 'success');
+        renderRoundsUI();
+        recalculateAndRenderStandings();
+      }
+
+      /* ==========================================================================
+         REGISTRO Y EDICIÓN DE RESULTADOS DE PARTIDAS
+         ========================================================================== */
+      function setMatchResult(roundNumber, matchId, resultVal) {
+        const round = state.rounds.find(r => r.roundNumber === roundNumber);
+        if (!round) return;
+
+        const match = round.matches.find(m => m.id === matchId);
+        if (!match) return;
+
+        match.result = resultVal || null;
+
+        // Para Eliminación Directa
+        if (state.tournament.modality === 'knockout') {
+          if (resultVal === '1-0' || resultVal === '1-0F') {
+            match.winnerId = match.whiteId;
+          } else if (resultVal === '0-1' || resultVal === '0-1F') {
+            match.winnerId = match.blackId;
+          } else if (resultVal === '0.5-0.5' || resultVal === '½-½') {
+            // Abrir modal para elegir ganador de desempate
+            openKnockoutTiebreakModal(match);
+            return;
+          } else {
+            match.winnerId = null;
+          }
+        }
+
+        saveState();
+        renderRoundsUI();
+        recalculateAndRenderStandings();
+      }
+
+      function openKnockoutTiebreakModal(match) {
+        const modal = document.getElementById('knockoutTiebreakModal');
+        const pWhite = state.players.find(p => p.id === match.whiteId);
+        const pBlack = state.players.find(p => p.id === match.blackId);
+
+        document.getElementById('koTiebreakMatchLabel').innerText = `Mesa #${match.board}: ${pWhite ? pWhite.name : ''} vs ${pBlack ? pBlack.name : ''}`;
+
+        document.getElementById('koWinnerWhiteBtn').onclick = () => {
+          match.winnerId = match.whiteId;
+          modal.classList.remove('active');
+          saveState();
+          renderRoundsUI();
+        };
+
+        document.getElementById('koWinnerBlackBtn').onclick = () => {
+          match.winnerId = match.blackId;
+          modal.classList.remove('active');
+          saveState();
+          renderRoundsUI();
+        };
+
+        modal.classList.add('active');
+      }
+
+      /* ==========================================================================
+         RENDERIZADO DE INTERFAZ: RONDAS Y MESAS
+         ========================================================================== */
+      function renderRoundsUI() {
+        const roundsNav = document.getElementById('roundsNav');
+        const pairingsGrid = document.getElementById('pairingsGrid');
+        const byeBox = document.getElementById('byeNotificationBox');
+        const roundTitle = document.getElementById('currentRoundTitle');
+        const roundStatus = document.getElementById('currentRoundStatus');
+
+        if (state.rounds.length === 0) {
+          roundsNav.innerHTML = '';
+          pairingsGrid.innerHTML = `
+            <div style="text-align: center; color: var(--text-dim); padding: 3rem;">
+              No hay emparejamientos activos. Ve a la pestaña <b>2. Configuración</b> para iniciar el torneo.
+            </div>
+          `;
+          byeBox.style.display = 'none';
+          roundTitle.innerText = '⚔️ Rondas y Emparejamientos';
+          roundStatus.innerText = 'El torneo aún no ha comenzado.';
+          return;
+        }
+
+        // Renderizar pestañas de navegación de rondas
+        roundsNav.innerHTML = state.rounds.map(r => {
+          const isActive = r.roundNumber === state.viewRound;
+          const isCompleted = r.status === 'completed';
+          return `
+            <button class="round-pill-btn ${isActive ? 'active' : ''} ${isCompleted ? 'completed' : ''}" 
+                    onclick="window.AjedrezApp.setViewRound(${r.roundNumber})">
+              Ronda ${r.roundNumber}
+            </button>
+          `;
+        }).join('');
+
+        const round = state.rounds.find(r => r.roundNumber === state.viewRound) || state.rounds[state.rounds.length - 1];
+        if (!round) return;
+
+        roundTitle.innerText = `⚔️ Emparejamientos - Ronda ${round.roundNumber} de ${state.tournament.totalRounds}`;
+        roundStatus.innerText = round.status === 'completed' 
+          ? 'Ronda finalizada y puntajes procesados' 
+          : 'Ronda en curso - Registra los resultados de cada mesa';
+
+        // Gestión de Bye visible
+        if (round.byePlayerId) {
+          const byePlayer = state.players.find(p => p.id === round.byePlayerId);
+          byeBox.style.display = 'block';
+          byeBox.innerHTML = `
+            <div class="bye-card">
+              <div style="display: flex; align-items: center; gap: 0.6rem;">
+                <span style="font-size: 1.25rem;">☕</span>
+                <div>
+                  <div style="font-weight: 700;">Descanso Oficial FIDE (1.0 Punto de Bye)</div>
+                  <div style="font-size: 0.85rem; opacity: 0.9;">
+                    <b>${byePlayer ? byePlayer.name : 'Jugador'}</b> no tiene rival asignado por número impar de participantes.
+                  </div>
+                </div>
+              </div>
+              <span class="badge" style="background: var(--gold); color: #ffffff; font-size: 0.8rem;">+1.0 PTS</span>
+            </div>
+          `;
+        } else {
+          byeBox.style.display = 'none';
+        }
+
+        // Renderizar mesas de juego
+        if (!round.matches || round.matches.length === 0) {
+          pairingsGrid.innerHTML = `
+            <div style="text-align: center; color: var(--text-dim); padding: 2.5rem;">
+              No hay partidas registradas en esta ronda.
+            </div>
+          `;
+          return;
+        }
+
+        pairingsGrid.innerHTML = round.matches.map(match => {
+          const pWhite = state.players.find(p => p.id === match.whiteId);
+          const pBlack = state.players.find(p => p.id === match.blackId);
+
+          const whiteName = pWhite ? pWhite.name : 'BYE';
+          const whiteElo = pWhite ? pWhite.elo : '-';
+          const whiteClub = pWhite ? pWhite.club : '';
+
+          const blackName = pBlack ? pBlack.name : 'BYE';
+          const blackElo = pBlack ? pBlack.elo : '-';
+          const blackClub = pBlack ? pBlack.club : '';
+
+          const res = match.result || '';
+          const isWhiteWin = res === '1-0' || res === '1-0F';
+          const isBlackWin = res === '0-1' || res === '0-1F';
+          const isDraw = res === '0.5-0.5' || res === '½-½';
+
+          return `
+            <div class="pairing-card">
+              <div class="board-badge">
+                <span>MESA</span>
+                ${match.board}
+              </div>
+
+              <div class="match-players">
+                <!-- Blancas -->
+                <div class="player-box ${isWhiteWin ? 'winner' : (isBlackWin ? 'loser' : '')}">
+                  <div class="color-token white">B</div>
+                  <div class="player-details">
+                    <span class="player-name">${whiteName}</span>
+                    <span class="player-meta">
+                      <b style="color: var(--gold);">${whiteElo}</b> • ${whiteClub}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Control de Resultado -->
+                <div class="match-result-control">
+                  <select class="result-select form-control" 
+                          onchange="window.AjedrezApp.handleResultChange(${round.roundNumber}, '${match.id}', this.value)">
+                    <option value="" ${res === '' ? 'selected' : ''}>Pendiente</option>
+                    <option value="1-0" ${res === '1-0' ? 'selected' : ''}>1 - 0</option>
+                    <option value="0.5-0.5" ${(res === '0.5-0.5' || res === '½-½') ? 'selected' : ''}>½ - ½</option>
+                    <option value="0-1" ${res === '0-1' ? 'selected' : ''}>0 - 1</option>
+                    <option value="1-0F" ${res === '1-0F' ? 'selected' : ''}>1 - 0F (Incomparecencia)</option>
+                    <option value="0-1F" ${res === '0-1F' ? 'selected' : ''}>0 - 1F (Incomparecencia)</option>
+                  </select>
+                </div>
+
+                <!-- Negras -->
+                <div class="player-box ${isBlackWin ? 'winner' : (isWhiteWin ? 'loser' : '')}">
+                  <div class="color-token black">N</div>
+                  <div class="player-details">
+                    <span class="player-name">${blackName}</span>
+                    <span class="player-meta">
+                      <b style="color: var(--gold);">${blackElo}</b> • ${blackClub}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      /* ==========================================================================
+         RENDERIZADO DE CLASIFICACIÓN GENERAL Y MATRIZ BERGER
+         ========================================================================== */
+      function recalculateAndRenderStandings() {
+        const tbody = document.getElementById('standingsTableBody');
+        const filterCategory = document.getElementById('categoryFilter').value;
+        const allStandings = computeAllStandings();
+
+        let filtered = allStandings;
+        if (filterCategory !== 'ALL') {
+          filtered = filtered.filter(item => item.player.category === filterCategory);
+        }
+
+        if (filtered.length === 0) {
+          tbody.innerHTML = `
+            <tr>
+              <td colspan="11" style="text-align: center; color: var(--text-dim); padding: 2.5rem;">
+                No hay jugadores en la clasificación con el filtro seleccionado.
+              </td>
+            </tr>
+          `;
+          return;
+        }
+
+        tbody.innerHTML = filtered.map((item, idx) => {
+          let posDisplay = `<b>${idx + 1}°</b>`;
+          if (idx === 0) posDisplay = `<span class="medal medal-1">🥇</span>`;
+          if (idx === 1) posDisplay = `<span class="medal medal-2">🥈</span>`;
+          if (idx === 2) posDisplay = `<span class="medal medal-3">🥉</span>`;
+
+          // Generar micro-historial de rondas
+          const roundsBadges = state.rounds.map(r => {
+            if (r.byePlayerId === item.player.id) {
+              return `<span style="font-size: 0.7rem; padding: 0.1rem 0.35rem; background: var(--gold-light); color: var(--gold); border-radius: 3px;" title="Ronda ${r.roundNumber}: Bye 1.0 pt">BYE</span>`;
+            }
+            if (!r.matches) return '';
+            const m = r.matches.find(m => m.whiteId === item.player.id || m.blackId === item.player.id);
+            if (!m || !m.result) return `<span style="font-size: 0.7rem; color: var(--text-dim);">-</span>`;
+
+            const isWhite = m.whiteId === item.player.id;
+            const oppId = isWhite ? m.blackId : m.whiteId;
+            const opp = state.players.find(p => p.id === oppId);
+            const oppName = opp ? opp.name : 'BYE';
+
+            let symbol = '=';
+            let color = 'var(--text-muted)';
+            if ((isWhite && (m.result === '1-0' || m.result === '1-0F')) || (!isWhite && (m.result === '0-1' || m.result === '0-1F'))) {
+              symbol = '+';
+              color = 'var(--emerald)';
+            } else if ((isWhite && (m.result === '0-1' || m.result === '0-1F')) || (!isWhite && (m.result === '1-0' || m.result === '1-0F'))) {
+              symbol = '-';
+              color = 'var(--rose)';
+            }
+
+            return `<span style="font-size: 0.75rem; font-weight: bold; color: ${color};" title="R${r.roundNumber} vs ${oppName} (${isWhite ? 'Blancas' : 'Negras'})">${isWhite ? 'B' : 'N'}${symbol}</span>`;
+          }).join(' ');
+
+          return `
+            <tr>
+              <td style="text-align: center;">${posDisplay}</td>
+              <td style="font-weight: 600;">${item.player.name}</td>
+              <td style="color: var(--text-muted);">${item.player.club}</td>
+              <td style="text-align: center; color: var(--gold); font-weight: 700;">${item.player.elo}</td>
+              <td style="text-align: center;"><span class="badge badge-category">${item.player.category}</span></td>
+              <td style="text-align: center;" class="points-highlight">${item.points.toFixed(1)}</td>
+              <td style="text-align: center; font-weight: 600;">${item.buchholzCut1.toFixed(1)}</td>
+              <td style="text-align: center; color: var(--text-muted);">${item.buchholzTotal.toFixed(1)}</td>
+              <td style="text-align: center; color: var(--text-muted);">${item.sonnebornBerger.toFixed(2)}</td>
+              <td style="text-align: center;">${item.wins}</td>
+              <td style="text-align: center;" class="no-print">${roundsBadges}</td>
+            </tr>
+          `;
+        }).join('');
+
+        // Si es Round Robin, renderizar la matriz cruzada Berger
+        if (state.tournament.modality === 'round_robin') {
+          renderBergerCrossTable(allStandings);
+        } else {
+          document.getElementById('crossTableSection').style.display = 'none';
+        }
+      }
+
+      function renderBergerCrossTable(standings) {
+        const section = document.getElementById('crossTableSection');
+        const table = document.getElementById('bergerMatrixTable');
+        section.style.display = 'block';
+
+        const n = standings.length;
+        let html = '<thead><tr><th>#</th><th>Jugador</th>';
+        for (let i = 0; i < n; i++) {
+          html += `<th>${i + 1}</th>`;
+        }
+        html += '<th style="color: var(--emerald);">PTS</th></tr></thead><tbody>';
+
+        standings.forEach((row, i) => {
+          html += `<tr><td style="font-weight: bold;">${i + 1}</td><td style="font-weight: 600; text-align: left;">${row.player.name}</td>`;
+
+          for (let j = 0; j < n; j++) {
+            if (i === j) {
+              html += `<td class="cell-self">×</td>`;
+            } else {
+              const opp = standings[j];
+              // Buscar resultado mutuo
+              let cellVal = '·';
+              for (const r of state.rounds) {
+                if (!r.matches) continue;
+                const m = r.matches.find(m => 
+                  (m.whiteId === row.player.id && m.blackId === opp.player.id) ||
+                  (m.whiteId === opp.player.id && m.blackId === row.player.id)
+                );
+                if (m && m.result) {
+                  const isWhite = m.whiteId === row.player.id;
+                  if (m.result === '1-0' || m.result === '1-0F') cellVal = isWhite ? '1' : '0';
+                  else if (m.result === '0-1' || m.result === '0-1F') cellVal = isWhite ? '0' : '1';
+                  else if (m.result === '0.5-0.5' || m.result === '½-½') cellVal = '½';
+                  break;
+                }
+              }
+              html += `<td><b>${cellVal}</b></td>`;
+            }
+          }
+
+          html += `<td style="font-weight: 800; color: var(--emerald);">${row.points.toFixed(1)}</td></tr>`;
+        });
+
+        html += '</tbody>';
+        table.innerHTML = html;
+      }
+
+      /* ==========================================================================
+         ACTUALIZACIÓN DE BARRA DE ESTADO / PILLS
+         ========================================================================== */
+      function updateHeaderPills() {
+        const modalityPill = document.getElementById('pillModality');
+        const roundPill = document.getElementById('pillRound');
+        const playerPill = document.getElementById('pillPlayerCount');
+        const subtitle = document.getElementById('headerTournamentSubtitle');
+
+        let modText = 'Sistema Suizo';
+        if (state.tournament.modality === 'round_robin') modText = 'Round Robin Berger';
+        if (state.tournament.modality === 'knockout') modText = 'Eliminación Directa';
+        modalityPill.innerText = modText;
+
+        if (state.tournament.status === 'finished') {
+          roundPill.innerText = 'Torneo Finalizado';
+          roundPill.className = 'status-pill active';
+        } else if (state.tournament.status === 'running') {
+          roundPill.innerText = `Ronda ${state.tournament.currentRound} de ${state.tournament.totalRounds}`;
+          roundPill.className = 'status-pill active';
+        } else {
+          roundPill.innerText = 'En Configuración';
+          roundPill.className = 'status-pill';
+        }
+
+        playerPill.innerText = `${state.players.length} Jugadores`;
+        subtitle.innerText = `${state.tournament.name} • ${state.tournament.timeControl}`;
+
+        document.getElementById('tabRoundsBadge').innerText = `R${state.tournament.currentRound}`;
+      }
+
+      /* ==========================================================================
+         CAMBIO DE PESTAÑAS (TABS)
+         ========================================================================== */
+      function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.classList.toggle('active', btn.getAttribute('data-tab') === tabId);
+        });
+
+        document.querySelectorAll('.tab-panel').forEach(panel => {
+          panel.classList.toggle('active', panel.id === tabId);
+        });
+
+        // Actualizaciones específicas al entrar a cada pestaña
+        if (tabId === 'tab-players') renderPlayersList();
+        if (tabId === 'tab-rounds') renderRoundsUI();
+        if (tabId === 'tab-standings') recalculateAndRenderStandings();
+      }
+
+      /* ==========================================================================
+         MODAL DE EDICIÓN DE JUGADOR
+         ========================================================================== */
+      function openEditPlayerModal(id) {
+        const player = state.players.find(p => p.id === id);
+        if (!player) return;
+
+        document.getElementById('editPlayerId').value = player.id;
+        document.getElementById('editPlayerName').value = player.name;
+        document.getElementById('editPlayerClub').value = player.club;
+        document.getElementById('editPlayerElo').value = player.elo;
+        document.getElementById('editPlayerCategory').value = player.category;
+        document.getElementById('editPlayerStatus').value = player.status;
+
+        document.getElementById('editPlayerModal').classList.add('active');
+      }
+
+      function closeAllModals() {
+        document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.remove('active'));
+      }
+
+      /* ==========================================================================
+         RESPALDO Y RESTAURACIÓN EN FORMATO JSON
+         ========================================================================== */
+      function exportTournamentJson() {
+        const dataStr = 'data:text/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(state, null, 2));
+        const downloadAnchor = document.createElement('a');
+        const filename = `TorneoAjedrez_${state.tournament.name.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.json`;
+        downloadAnchor.setAttribute('href', dataStr);
+        downloadAnchor.setAttribute('download', filename);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+        showToast('Respaldo JSON descargado con éxito', 'success');
+      }
+
+      function importTournamentJson(file) {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          try {
+            const imported = JSON.parse(e.target.result);
+            if (!imported.tournament || !Array.isArray(imported.players)) {
+              throw new Error('Estructura de archivo de torneo no válida');
+            }
+            state = imported;
+            saveState();
+            applyTheme(state.theme || 'dark');
+            syncFormWithState();
+            renderPlayersList();
+            renderRoundsUI();
+            recalculateAndRenderStandings();
+            updateHeaderPills();
+            showToast('Torneo cargado y restaurado correctamente', 'success');
+          } catch (err) {
+            console.error(err);
+            showToast('Error al leer el archivo JSON: formato incompatible', 'error');
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      function resetTournament() {
+        if (!confirm('¿Estás seguro de que deseas reiniciar y crear un nuevo torneo? Esta acción borrará los emparejamientos y resultados actuales.')) {
+          return;
+        }
+
+        state.tournament = {
+          name: 'Torneo Abierto de Ajedrez 2026',
+          location: 'Club Local de Ajedrez',
+          timeControl: '15 min + 10 seg (Rápido)',
+          modality: 'swiss',
+          totalRounds: 5,
+          currentRound: 0,
+          status: 'setup',
+          createdDate: new Date().toISOString()
+        };
+        state.rounds = [];
+        state.viewRound = 1;
+        // Reiniciar historial de jugadores pero conservar lista para conveniencia
+        state.players.forEach(p => {
+          p.colorHistory = [];
+          p.opponentsHistory = [];
+          p.status = 'active';
+        });
+
+        saveState();
+        syncFormWithState();
+        renderPlayersList();
+        renderRoundsUI();
+        recalculateAndRenderStandings();
+        updateHeaderPills();
+        switchTab('tab-players');
+        showToast('Torneo reiniciado. Puedes inscribir jugadores o comenzar de nuevo.', 'info');
+      }
+
+      function syncFormWithState() {
+        document.getElementById('cfgTournamentName').value = state.tournament.name;
+        document.getElementById('cfgLocation').value = state.tournament.location;
+        document.getElementById('cfgTimeControl').value = state.tournament.timeControl;
+        document.getElementById('cfgModality').value = state.tournament.modality;
+        document.getElementById('cfgTotalRounds').value = state.tournament.totalRounds;
+      }
+
+      /* ==========================================================================
+         IMPRESIÓN OFICIAL OPTIMIZADA PARA HOJAS A4
+         ========================================================================== */
+      function printOfficialView(type) {
+        const printTitle = document.getElementById('printTitle');
+        const printDetails = document.getElementById('printDetails');
+
+        if (type === 'pairings') {
+          switchTab('tab-rounds');
+          printTitle.innerText = `${state.tournament.name} - Hoja Oficial de Emparejamientos`;
+          printDetails.innerText = `Ronda ${state.viewRound} de ${state.tournament.totalRounds} | Ritmo: ${state.tournament.timeControl} | Sede: ${state.tournament.location}`;
+        } else if (type === 'standings') {
+          switchTab('tab-standings');
+          printTitle.innerText = `${state.tournament.name} - Clasificación General Oficial`;
+          printDetails.innerText = `Cálculo de Desempates FIDE tras Ronda ${state.tournament.currentRound} | Sede: ${state.tournament.location}`;
+        }
+
+        setTimeout(() => {
+          window.print();
+        }, 150);
+      }
+
+      /* ==========================================================================
+         INICIALIZACIÓN Y EVENT LISTENERS
+         ========================================================================== */
+      function init() {
+        loadState();
+        applyTheme(state.theme || 'dark');
+        syncFormWithState();
+        renderPlayersList();
+        updateHeaderPills();
+
+        if (state.tournament.status === 'running' || state.tournament.status === 'finished') {
+          renderRoundsUI();
+          recalculateAndRenderStandings();
+        }
+
+        // Navegación de pestañas
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            switchTab(btn.getAttribute('data-tab'));
+          });
+        });
+
+        // Formulario Registrar Jugador
+        document.getElementById('addPlayerForm').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const name = document.getElementById('playerName').value;
+          const club = document.getElementById('playerClub').value;
+          const elo = document.getElementById('playerElo').value;
+          const category = document.getElementById('playerCategory').value;
+
+          addPlayer(name, club, elo, category);
+
+          document.getElementById('playerName').value = '';
+          document.getElementById('playerClub').value = '';
+          document.getElementById('playerName').focus();
+        });
+
+        // Búsqueda de jugadores
+        document.getElementById('playerSearchInput').addEventListener('input', renderPlayersList);
+
+        // Cargar jugadores Demo
+        document.getElementById('loadDemoPlayersBtn').addEventListener('click', loadDemoPlayers);
+
+        // Guardar parámetros de configuración
+        document.getElementById('saveConfigBtn').addEventListener('click', () => {
+          state.tournament.name = document.getElementById('cfgTournamentName').value.trim();
+          state.tournament.location = document.getElementById('cfgLocation').value.trim();
+          state.tournament.timeControl = document.getElementById('cfgTimeControl').value;
+          state.tournament.modality = document.getElementById('cfgModality').value;
+          state.tournament.totalRounds = parseInt(document.getElementById('cfgTotalRounds').value, 10) || 5;
+          saveState();
+          updateHeaderPills();
+          showToast('Configuración del torneo guardada', 'success');
+        });
+
+        // Cambiar texto de ayuda según modalidad
+        document.getElementById('cfgModality').addEventListener('change', (e) => {
+          const swissGroup = document.getElementById('swissConfigGroup');
+          const help = document.getElementById('modalityHelpText');
+          if (e.target.value === 'swiss') {
+            swissGroup.style.display = 'grid';
+            help.innerText = 'Emparejamiento FIDE: grupos de puntuación afín, alternancia estricta de color y sin repetir rivales.';
+          } else if (e.target.value === 'round_robin') {
+            swissGroup.style.display = 'none';
+            help.innerText = 'Todos contra todos usando las tablas cíclicas Berger oficiales de la FIDE.';
+          } else if (e.target.value === 'knockout') {
+            swissGroup.style.display = 'none';
+            help.innerText = 'Llave de eliminación directa con cabezas de serie sembradas por Elo.';
+          }
+        });
+
+        // Botón Iniciar Torneo
+        document.getElementById('startTournamentBtn').addEventListener('click', startTournament);
+
+        // Botón Finalizar Ronda
+        document.getElementById('finishRoundBtn').addEventListener('click', finishCurrentRound);
+
+        // Filtro por categoría en clasificación
+        document.getElementById('categoryFilter').addEventListener('change', recalculateAndRenderStandings);
+
+        // Botones de impresión
+        document.getElementById('printPairingsBtn').addEventListener('click', () => printOfficialView('pairings'));
+        document.getElementById('printStandingsBtn').addEventListener('click', () => printOfficialView('standings'));
+
+        // Tema Claro / Oscuro
+        document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
+
+        // Exportar e Importar JSON
+        document.getElementById('exportJsonBtn').addEventListener('click', exportTournamentJson);
+        document.getElementById('importJsonBtn').addEventListener('click', () => {
+          document.getElementById('jsonFileInput').click();
+        });
+        document.getElementById('jsonFileInput').addEventListener('change', (e) => {
+          if (e.target.files && e.target.files[0]) {
+            importTournamentJson(e.target.files[0]);
+          }
+        });
+
+        // Reiniciar Torneo
+        document.getElementById('resetTournamentBtn').addEventListener('click', resetTournament);
+
+        // Modal de edición de jugador
+        document.getElementById('savePlayerEditBtn').addEventListener('click', () => {
+          const id = document.getElementById('editPlayerId').value;
+          const name = document.getElementById('editPlayerName').value.trim();
+          const club = document.getElementById('editPlayerClub').value.trim();
+          const elo = parseInt(document.getElementById('editPlayerElo').value, 10);
+          const category = document.getElementById('editPlayerCategory').value;
+          const status = document.getElementById('editPlayerStatus').value;
+
+          if (!name) return;
+          updatePlayer(id, { name, club, elo, category, status });
+          closeAllModals();
+        });
+
+        document.querySelectorAll('.close-modal-btn').forEach(btn => {
+          btn.addEventListener('click', closeAllModals);
+        });
+
+        // Cerrar modales con clic fuera
+        document.querySelectorAll('.modal-backdrop').forEach(modal => {
+          modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeAllModals();
+          });
+        });
+      }
+
+      // Exponer métodos indispensables para eventos inline en el DOM
+      window.AjedrezApp = {
+        openEditModal: openEditPlayerModal,
+        deletePlayerPrompt: deletePlayer,
+        setViewRound: (roundNum) => {
+          state.viewRound = roundNum;
+          renderRoundsUI();
+        },
+        handleResultChange: (roundNum, matchId, resultVal) => {
+          setMatchResult(roundNum, matchId, resultVal);
+        }
+      };
+
+      // Inicializar al cargar el DOM
+      document.addEventListener('DOMContentLoaded', init);
+    })();
+  </script>
+</body>
+</html>
